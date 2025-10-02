@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Proforma{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">Nueva Proforma</h2>
+
+{% if error %}
+<div class="alert alert-danger" role="alert">
+  {{ error }}
+</div>
+{% endif %}
+
+<form method="post" id="proforma-form">
+  {% csrf_token %}
+
+  <!-- Datos del Paciente -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="card-title">Datos del Paciente</h5>
+      <div class="row">
+        <div class="col-md-4 mb-2">{{ p_form.cedula.label_tag }} {{ p_form.cedula }}</div>
+        <div class="col-md-4 mb-2">{{ p_form.nombre.label_tag }} {{ p_form.nombre }}</div>
+        <div class="col-md-4 mb-2">{{ p_form.email.label_tag }} {{ p_form.email }}</div>
+        <div class="col-md-4 mb-2">{{ p_form.celular.label_tag }} {{ p_form.celular }}</div>
+        <div class="col-md-8 mb-2">{{ p_form.direccion.label_tag }} {{ p_form.direccion }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ítems -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="card-title">Ítems</h5>
+      <table class="table table-bordered" id="items-table">
+        <thead>
+          <tr>
+            <th>Descripción</th>
+            <th style="width:120px;">Cantidad</th>
+            <th style="width:150px;">Precio Unitario</th>
+            <th style="width:150px;">Subtotal</th>
+            <th style="width:100px;"></th>
+          </tr>
+          <!-- Fila buscador debajo de encabezados -->
+          <tr>
+            <td colspan="5" style="position: relative;">
+              <input type="text" id="buscar-servicio" class="form-control" placeholder="🔍 Buscar servicio por código o nombre">
+              <div id="sugerencias" class="list-group position-absolute w-50"></div>
+            </td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><input type="text" name="item_descripcion[]" class="form-control"></td>
+            <td><input type="number" name="item_cantidad[]" value="1" min="1" class="form-control item-cant"></td>
+            <td><input type="number" name="item_precio[]" step="0.01" value="0.00" class="form-control item-precio"></td>
+            <td class="item-subtotal">$0.00</td>
+            <td>
+              <button type="button" class="btn btn-outline-danger btn-sm remove-row">🗑 Eliminar</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <button type="button" class="btn btn-secondary" id="add-row">➕ Agregar Ítem manual</button>
+    </div>
+  </div>
+
+  <!-- Opciones -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="card-title">Opciones</h5>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="mostrar_precios" id="mostrarPrecios" checked>
+        <label class="form-check-label" for="mostrarPrecios">
+          Mostrar precios unitarios y subtotales
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Observaciones -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="card-title">Observaciones</h5>
+      {{ o_form.observaciones }}
+    </div>
+  </div>
+
+  <!-- Guardar -->
+  <div class="d-flex justify-content-between align-items-center">
+    <h4>Total: <span id="grand-total">$0.00</span></h4>
+    <button type="submit" class="btn btn-success">💾 Guardar Proforma</button>
+  </div>
+</form>
+
+<!-- Script -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const form = document.getElementById("proforma-form");
+  const tabla = document.querySelector("#items-table tbody");
+
+  // Bloquear Enter SOLO dentro de la tabla de ítems
+  document.getElementById("items-table").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+    }
+  });
+
+  // Cédula obligatoria y autocompletar
+  const cedulaInput = document.querySelector("input[name='cedula']");
+  if (cedulaInput) {
+    cedulaInput.setAttribute("required", "required");
+    cedulaInput.addEventListener("blur", function() {
+      const cedula = this.value.trim();
+      if (!cedula) return;
+      fetch(`/buscar-paciente/?cedula=${encodeURIComponent(cedula)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.existe) {
+            document.querySelector("input[name='nombre']").value = data.nombre || "";
+            document.querySelector("input[name='email']").value = data.email || "";
+            document.querySelector("input[name='celular']").value = data.celular || "";
+            document.querySelector("input[name='direccion']").value = data.direccion || ""
+          }
+        })
+        .catch(() => {});
+    });
+  }
+
+  // Cálculo de totales
+  function updateTotals() {
+    let grandTotal = 0.0;
+    document.querySelectorAll("#items-table tbody tr").forEach(function(row) {
+      let cant = parseFloat(row.querySelector(".item-cant").value) || 0;
+      let precio = parseFloat(row.querySelector(".item-precio").value) || 0;
+      let subtotal = cant * precio;
+      row.querySelector(".item-subtotal").textContent = "$" + subtotal.toFixed(2);
+      grandTotal += subtotal;
+    });
+    document.getElementById("grand-total").textContent = "$" + grandTotal.toFixed(2);
+  }
+
+  document.getElementById("items-table").addEventListener("input", updateTotals);
+
+  document.getElementById("add-row").addEventListener("click", function() {
+    let newRow = document.createElement("tr");
+    newRow.innerHTML = `
+      <td><input type="text" name="item_descripcion[]" class="form-control"></td>
+      <td><input type="number" name="item_cantidad[]" value="1" min="1" class="form-control item-cant"></td>
+      <td><input type="number" name="item_precio[]" step="0.01" value="0.00" class="form-control item-precio"></td>
+      <td class="item-subtotal">$0.00</td>
+      <td><button type="button" class="btn btn-outline-danger btn-sm remove-row">🗑 Eliminar</button></td>
+    `;
+    tabla.appendChild(newRow);
+  });
+
+  document.getElementById("items-table").addEventListener("click", function(e) {
+    if (e.target.classList.contains("remove-row")) {
+      e.target.closest("tr").remove();
+      updateTotals();
+    }
+  });
+
+  // === Buscador catálogo ===
+  const input = document.getElementById("buscar-servicio");
+  const sugerencias = document.getElementById("sugerencias");
+
+  input.addEventListener("input", function() {
+    let q = this.value.trim();
+
+    // CAMBIO ÚNICO: permitir búsqueda desde 1 carácter
+    if (q.length < 1) { sugerencias.innerHTML = ""; return; }
+
+    fetch(`/catalogo/buscar/?q=${encodeURIComponent(q)}`)
+      .then(r => r.json())
+      .then(data => {
+        sugerencias.innerHTML = "";
+        data.forEach(item => {
+          let div = document.createElement("div");
+          div.classList.add("list-group-item", "list-group-item-action");
+          div.textContent = `${item.codigo} - ${item.nombre} ($${Number(item.precio).toFixed(2)})`;
+          div.addEventListener("click", function() {
+            let row = document.createElement("tr");
+            row.innerHTML = `
+              <td><input type="text" name="item_descripcion[]" value="${item.nombre}" class="form-control"></td>
+              <td><input type="number" name="item_cantidad[]" value="1" min="1" class="form-control item-cant"></td>
+              <td><input type="number" name="item_precio[]" value="${Number(item.precio).toFixed(2)}" step="0.01" class="form-control item-precio"></td>
+              <td class="item-subtotal">$${Number(item.precio).toFixed(2)}</td>
+              <td><button type="button" class="btn btn-outline-danger btn-sm remove-row">🗑 Eliminar</button></td>
+            `;
+            tabla.appendChild(row);
+            updateTotals();
+            sugerencias.innerHTML = "";
+            input.value = "";
+          });
+          sugerencias.appendChild(div);
+        });
+      })
+      .catch(() => { sugerencias.innerHTML = ""; });
+  });
+
+  updateTotals();
+});
+</script>
+{% endblock %}

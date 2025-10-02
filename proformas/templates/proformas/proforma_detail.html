@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Proforma #{{ prof.numero }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Proforma #{{ prof.numero }}</h2>
+  <div>
+    <a id="btnPdf"
+       href="{% url 'proforma_pdf' prof.numero %}"
+       target="_blank"
+       class="btn btn-secondary">📄 Descargar PDF</a>
+    <a href="{% url 'proforma_list' %}" class="btn btn-primary">⬅ Volver</a>
+  </div>
+</div>
+
+<div class="form-check mb-3">
+  <input class="form-check-input" type="checkbox" id="chkOcultar" {% if not mostrar_precios %}checked{% endif %}>
+  <label class="form-check-label" for="chkOcultar">
+    Ocultar precios unitarios y subtotales
+  </label>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <h5 class="card-title">Paciente</h5>
+    <p><strong>Nombre:</strong> {{ prof.paciente.nombre }}</p>
+    <p><strong>Cédula:</strong> {{ prof.paciente.cedula }}</p>
+    <p><strong>Fecha:</strong> {{ prof.fecha|date:"d/m/Y H:i" }}</p>
+    {% if prof.observaciones %}
+      <p><strong>Observaciones:</strong> {{ prof.observaciones }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<table class="table table-bordered">
+  <thead class="table-dark">
+    <tr>
+      <th>Descripción</th>
+      <th style="width:120px;">Cantidad</th>
+      {% if mostrar_precios %}
+        <th style="width:150px;">P. Unitario</th>
+        <th style="width:150px;">Subtotal</th>
+      {% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.descripcion }}</td>
+      <td>{{ item.cantidad }}</td>
+      {% if mostrar_precios %}
+        <td>${{ item.precio_unitario|floatformat:2 }}</td>
+        <td>${{ item.subtotal|floatformat:2 }}</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+  {% if mostrar_precios %}
+  <tfoot>
+    <tr>
+      <th colspan="3" class="text-end">Total</th>
+      <th>${{ prof.total|floatformat:2 }}</th>
+    </tr>
+  </tfoot>
+  {% endif %}
+</table>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const chk = document.getElementById("chkOcultar");
+  const btn = document.getElementById("btnPdf");
+  const baseUrl = btn.getAttribute("href");
+
+  function updateHref() {
+    btn.href = chk.checked ? (baseUrl + "?ocultar=1") : (baseUrl + "?ocultar=0");
+  }
+
+  // Inicializa al cargar
+  updateHref();
+
+  chk.addEventListener("change", updateHref);
+});
+</script>
+{% endblock %}

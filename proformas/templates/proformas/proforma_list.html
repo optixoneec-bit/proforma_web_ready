@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Listado de Proformas{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Listado de Proformas</h2>
+  <a href="{% url 'proforma_create' %}" class="btn btn-primary">➕ Nueva Proforma</a>
+</div>
+
+<form method="get" class="d-flex mb-3">
+  <input type="text" name="q" class="form-control me-2"
+         placeholder="Buscar por número, nombre o cédula" value="{{ query }}">
+  <button type="submit" class="btn btn-primary">🔍 Buscar</button>
+</form>
+
+<table class="table table-striped table-hover table-bordered align-middle">
+  <thead class="table-dark text-center">
+    <tr>
+      <th style="width:6%;">#</th>
+      <th style="width:28%;">Paciente</th>
+      <th style="width:20%;">Fecha</th>
+      <th style="width:16%; text-align:right;">Total</th>
+      <th style="width:30%;">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for prof in proformas %}
+    <tr>
+      <td class="text-center">{{ prof.numero }}</td>
+      <td>{{ prof.paciente.nombre }}</td>
+      <td>{{ prof.fecha|date:"d/m/Y H:i" }}</td>
+      <td class="text-end">${{ prof.total }}</td>
+      <td class="text-center">
+        <a href="{% url 'proforma_detail' prof.numero %}" class="btn btn-sm btn-info">🔍 Ver</a>
+        <a href="{% url 'proforma_pdf' prof.numero %}" class="btn btn-sm btn-secondary">📄 PDF</a>
+        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ prof.numero }}">
+          🗑 Eliminar
+        </button>
+
+        <!-- Modal Eliminar -->
+        <div class="modal fade" id="deleteModal{{ prof.numero }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ prof.numero }}" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel{{ prof.numero }}">Confirmar eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body text-center">
+                ¿Estás seguro de que deseas eliminar la proforma <strong>#{{ prof.numero }}</strong>?
+              </div>
+              <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a href="{% url 'proforma_delete' prof.numero %}" class="btn btn-danger">Eliminar</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Fin Modal -->
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="5" class="text-center">No hay proformas registradas.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Botón flotante para registrar servicios -->
+<button type="button" class="btn btn-primary rounded-circle" 
+        style="position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; 
+               font-size: 28px; display: flex; align-items: center; justify-content: center;" 
+        data-bs-toggle="modal" data-bs-target="#servicioModal">
+  +
+</button>
+
+<!-- Modal para registrar servicio -->
+<div class="modal fade" id="servicioModal" tabindex="-1" aria-labelledby="servicioModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="servicioModalLabel">➕ Nuevo Servicio</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form method="post" action="{% url 'servicio_create' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="codigo" class="form-label">Código</label>
+            <input type="text" name="codigo" id="codigo" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="nombre" class="form-label">Nombre / Descripción</label>
+            <input type="text" name="nombre" id="nombre" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="area" class="form-label">Área</label>
+            <input type="text" name="area" id="area" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label for="pvp_sugerido" class="form-label">Precio sugerido</label>
+            <input type="number" step="0.01" name="pvp_sugerido" id="pvp_sugerido" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Guardar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- Fin Modal -->
+{% endblock %}

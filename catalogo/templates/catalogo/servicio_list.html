@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Catálogo de Servicios{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Catálogo de Servicios</h2>
+  <a href="{% url 'proforma_list' %}" class="btn btn-secondary btn-sm">⬅ Volver</a>
+</div>
+
+<!-- Formulario de búsqueda -->
+<form method="get" class="d-flex mb-3">
+  <input type="text" name="q" class="form-control me-2" placeholder="Buscar por código, nombre o área" value="{{ query }}">
+  <button type="submit" class="btn btn-primary btn-sm">🔍 Buscar</button>
+</form>
+
+<!-- Botones de acciones masivas -->
+<div class="mb-3 d-flex gap-2 flex-wrap">
+  <form method="post" action="{% url 'servicio_bulk_delete' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar los seleccionados?');">🗑 Eliminar seleccionados</button>
+  </form>
+  <a href="{% url 'servicio_delete_all' %}" class="btn btn-danger btn-sm" onclick="return confirm('⚠️ Esto eliminará toda la base. ¿Seguro?');">🗑 Eliminar todo</a>
+
+  <!-- Formulario importar Excel -->
+  <form method="post" action="{% url 'importar_catalogo' %}" enctype="multipart/form-data" class="d-flex gap-2">
+    {% csrf_token %}
+    <input type="file" name="archivo" accept=".xlsx" required class="form-control form-control-sm">
+    <button type="submit" class="btn btn-success btn-sm">📂 Importar Excel</button>
+  </form>
+</div>
+
+<!-- Tabla con bulk delete -->
+<form method="post" action="{% url 'servicio_bulk_delete' %}">
+  {% csrf_token %}
+  <table class="table table-striped table-hover table-bordered align-middle">
+    <thead class="table-dark text-center">
+      <tr>
+        <th><input type="checkbox" id="select-all"></th>
+        <th style="width:10%;">Código</th>
+        <th style="width:40%;">Nombre</th>
+        <th style="width:20%;">Área</th>
+        <th style="width:15%; text-align:right;">Precio</th>
+        <th style="width:15%;">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in servicios %}
+      <tr>
+        <td class="text-center"><input type="checkbox" name="seleccionados" value="{{ s.id }}"></td>
+        <td class="text-center">{{ s.codigo }}</td>
+        <td>{{ s.nombre }}</td>
+        <td>{{ s.area }}</td>
+        <td class="text-end">${{ s.pvp_sugerido }}</td>
+        <td class="text-center">
+          <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditar{{ s.id }}">✏️ Editar</button>
+          <a href="{% url 'servicio_delete' s.pk %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar {{ s.nombre }}?');">🗑 Eliminar</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center">No hay servicios registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</form>
+
+<!-- Navegación -->
+<nav aria-label="Page navigation">
+  <ul class="pagination justify-content-center">
+    {% if page_obj.has_previous %}
+      <li class="page-item"><a class="page-link" href="?q={{ query }}&page=1">« Primero</a></li>
+      <li class="page-item"><a class="page-link" href="?q={{ query }}&page={{ page_obj.previous_page_number }}">‹ Anterior</a></li>
+    {% endif %}
+    <li class="page-item active"><span class="page-link">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+    {% if page_obj.has_next %}
+      <li class="page-item"><a class="page-link" href="?q={{ query }}&page={{ page_obj.next_page_number }}">Siguiente ›</a></li>
+      <li class="page-item"><a class="page-link" href="?q={{ query }}&page={{ page_obj.paginator.num_pages }}">Último »</a></li>
+    {% endif %}
+  </ul>
+</nav>
+
+<!-- Modales de edición -->
+{% for s in servicios %}
+<div class="modal fade" id="modalEditar{{ s.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'servicio_edit' s.pk %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Editar servicio</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3"><label class="form-label">Código</label><input type="text" name="codigo" value="{{ s.codigo }}" class="form-control" required></div>
+          <div class="mb-3"><label class="form-label">Nombre</label><input type="text" name="nombre" value="{{ s.nombre }}" class="form-control" required></div>
+          <div class="mb-3"><label class="form-label">Área</label><input type="text" name="area" value="{{ s.area }}" class="form-control"></div>
+          <div class="mb-3"><label class="form-label">Precio sugerido</label><input type="number" step="0.01" name="pvp_sugerido" value="{{ s.pvp_sugerido }}" class="form-control" required></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">💾 Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<style>.btn-sm { min-width: 140px; }</style>
+
+<script>
+document.getElementById("select-all").addEventListener("change", function(){
+  let checkboxes = document.querySelectorAll("input[name='seleccionados']");
+  checkboxes.forEach(cb => cb.checked = this.checked);
+});
+</script>
+{% endblock %}

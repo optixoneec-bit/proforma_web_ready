@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Eliminar Proforma{% endblock %}
+
+{% block content %}
+<h2>¿Eliminar Proforma #{{ prof.numero }}?</h2>
+<p><strong>Paciente:</strong> {{ prof.paciente.nombre }}</p>
+<p><strong>Total:</strong> ${{ prof.total }}</p>
+
+<form method="post">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-danger">🗑 Confirmar Eliminar</button>
+  <a href="{% url 'proforma_list' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}
