@@ -1,9 +1,12 @@
 from pathlib import Path
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = 'proforma-secret-key'
-DEBUG = True
-ALLOWED_HOSTS = []
+
+SECRET_KEY = os.environ.get("SECRET_KEY", "inseguro")
+DEBUG = os.environ.get("DEBUG", "False") == "True"
+
+ALLOWED_HOSTS = ["*", ".onrender.com"]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -14,7 +17,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'proformas',
     'catalogo',
-
 ]
 
 MIDDLEWARE = [
@@ -32,9 +34,8 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # aquí podrías poner carpetas extra de templates si usas una común
-        'DIRS': [],  
-        'APP_DIRS': True,   # 👈 importante que esté en True
+        'DIRS': [],
+        'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -45,7 +46,6 @@ TEMPLATES = [
         },
     },
 ]
-
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
@@ -63,6 +63,9 @@ TIME_ZONE = 'America/Guayaquil'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / 'proformas' / 'static']
+# ⚡ Cambiar configuración de estáticos
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / "proformas" / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
